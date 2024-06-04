@@ -5,3 +5,4 @@ rounds-tex/*.tex
 *.fdb_latexmk
 *.fls
 *.log
+*.txt
