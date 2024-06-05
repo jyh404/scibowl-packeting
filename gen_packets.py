@@ -278,7 +278,7 @@ def gen_round(round_qs):  # Returns a list of QuestionPairs
 
 # Returns a list of lists of QuestionPairs. Outer list is of length NUM_ROUNDS, and inner lists are of length ROUND_LENGTH.
 def gen_all_rounds(question_df):
-    return [gen_round(question_df.loc[question_df[ROUND_NUM] == round_num], round_num) for round_num in range(1, NUM_ROUNDS+1)]
+    return [gen_round(question_df.loc[question_df[ROUND_NUM] == round_num]) for round_num in range(1, NUM_ROUNDS+1)]
 
 
 # Takes in a list of QuestionPairs. Returns a string corresponding to the blocks
@@ -286,7 +286,6 @@ def gen_question_tex(question_pairs):
     return "\\hrulefill\n".join(
         [pair.render(i + 1) for i, pair in enumerate(question_pairs)]
     )
-
 
 # Takes in a list of rounds, which are lists of QuestionPairs. Pass in the result from gen_all_rounds.
 def gen_round_tex(rounds):
