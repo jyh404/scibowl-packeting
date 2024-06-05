@@ -10,7 +10,7 @@ import re
 random.seed(0)
 
 # Meta
-YEAR = 2023
+YEAR = 2024
 
 # Column names
 ROUND_NUM = "Round"
@@ -254,8 +254,7 @@ def has_repeat_cat(chunks):
 
 
 # This function generates rounds in chunks of 6, 6, 6, and then 5. The first 3 have all 6 categories, and the last one is missing Energy.
-def gen_round(question_df, round_num):  # Returns a list of QuestionPairs
-    round_qs = question_df.loc[question_df[ROUND_NUM] == round_num]
+def gen_round(round_qs):  # Returns a list of QuestionPairs
     tossup_buckets = bucket_round(round_qs.loc[round_qs[TYPE] == TOSSUP])
     bonus_buckets = bucket_round(round_qs.loc[round_qs[TYPE] == BONUS])
     paired_qs = pair_buckets(tossup_buckets, bonus_buckets)
@@ -279,7 +278,7 @@ def gen_round(question_df, round_num):  # Returns a list of QuestionPairs
 
 # Returns a list of lists of QuestionPairs. Outer list is of length NUM_ROUNDS, and inner lists are of length ROUND_LENGTH.
 def gen_all_rounds(question_df):
-    return [gen_round(question_df, i + 1) for i in range(NUM_ROUNDS)]
+    return [gen_round(question_df.loc[question_df[ROUND_NUM] == round_num], round_num) for round_num in range(1, NUM_ROUNDS+1)]
 
 
 # Takes in a list of QuestionPairs. Returns a string corresponding to the blocks
@@ -293,24 +292,30 @@ def gen_question_tex(question_pairs):
 def gen_round_tex(rounds):
     return [gen_question_tex(r) for r in rounds]
 
+# Takes in template, round_number, tex_block, outputs the string of the tex file
+def return_tex(template, round_number, tex_block):
+    res = ""
+    for line in template:
+        newline = (
+            line.replace("INSERT_QUESTIONS_HERE", tex_block)
+            .replace("ROUND_NUMBER", str(round_number))
+            .replace("YEAR", str(YEAR))
+        )
+        res += newline + "\n"
+    return res
+
+# Takes in .csv and writes to a given directory with the correct tex files
+def write_tex(csv, directory):
+    with open("./round_template.tex", "r") as inf:
+        template = inf.readlines()
+    for i, tex_block in enumerate(gen_round_tex(gen_all_rounds(csv))):
+        outname = f"./{directory}/Round {i+1}.tex"
+        with open(outname, "w+") as outf:
+            outf.write(return_tex(template, i + 1, tex_block))
 
 if __name__ == "__main__":
     all_questions = pd.read_csv(sys.argv[1])
-    # dtype={W: str, X: str, Y: str, Z: str, ANSWER: str}
-    # all_questions = pd.read_csv("./all_questions.csv")
-    with open("./round_template.tex", "r") as inf:
-        template = inf.readlines()
-    for i, tex_block in enumerate(gen_round_tex(gen_all_rounds(all_questions))):
-        outname = f"./rounds-tex/Round {i+1}.tex"
-        with open(outname, "w+") as outf:
-            for line in template:
-                newline = (
-                    line.replace("INSERT_QUESTIONS_HERE", tex_block)
-                    .replace("ROUND_NUMBER", str(i + 1))
-                    .replace("YEAR", str(YEAR))
-                )
-                outf.write(newline)
-
+    write_tex(all_questions, 'rounds-tex')
 
 # TODO: check category target matches in find_sheet_issues. check that short answer questions do NOT have WXYZ and MC questions have ALL wxyz.
 
