@@ -1,4 +1,5 @@
 # Assumes the input on the command line is a spreadsheet (.csv), all categories have been concatenated, and all assignment can be done through round numbers (i.e. no paired questions)
+# The .csv should have the column names as seen below (i.e. be of the same format as our template)
 
 import pandas as pd
 import random
@@ -6,6 +7,10 @@ from enum import Enum
 from itertools import zip_longest
 import sys
 import re
+import warnings
+
+# it doesn't like the definition for mult_item_patterns
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 random.seed(0)
 
@@ -254,6 +259,8 @@ def has_repeat_cat(chunks):
 
 
 # This function generates rounds in chunks of 6, 6, 6, and then 5. The first 3 have all 6 categories, and the last one is missing Energy.
+# It should still work for any number of round questions (i.e. not just 23 per round) as it goes through each of the buckets, adds a question 
+# if present to the chunk, then extends the list of questions by that chunk.
 def gen_round(round_qs):  # Returns a list of QuestionPairs
     tossup_buckets = bucket_round(round_qs.loc[round_qs[TYPE] == TOSSUP])
     bonus_buckets = bucket_round(round_qs.loc[round_qs[TYPE] == BONUS])
