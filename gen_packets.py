@@ -66,6 +66,8 @@ mult_item_patterns = [
     ("(.*) 1\) (.*) 2\) (.*) 3\) (.*) 4\) (.*)", 4),
     ("(.*) 1\) (.*); 2\) (.*); 3\) (.*)", 3),
     ("(.*) 1\) (.*) 2\) (.*) 3\) (.*)", 3),
+    ("(.*) 1\) (.*); 2\) (.*)", 2),
+    ("(.*) 1\) (.*) 2\) (.*)", 2),
 ]
 
 
@@ -159,9 +161,9 @@ class Question:
 class QuestionPair:
     def __init__(self, tossup, bonus):
         assert tossup.category == bonus.category  # No mixed pairs
-        if tossup.category == Category.Energy:
-            # Energy pairs should be of the same category
-            assert tossup.subcat is not None and tossup.subcat == bonus.subcat
+        #if tossup.category == Category.Energy:
+            # Energy pairs should not be of the same category
+            #assert tossup.subcat is not None and tossup.subcat != bonus.subcat
         self.category = tossup.category
         self.tossup = tossup
         self.bonus = bonus
