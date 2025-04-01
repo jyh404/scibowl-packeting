@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 random.seed(0)
 
 # Meta
-YEAR = 2024
+YEAR = 2025
 
 # Column names
 ROUND_NUM = "Round"
@@ -23,7 +23,6 @@ TYPE = "Type"
 FORMAT = "Format"
 CATEGORY = "Category"
 SUBCAT = "Subcategory"
-MULT_ITEM = "Multiple-item"
 BODY = "Question"
 ANSWER = "Answer"
 ACCEPT = "Accept"
@@ -92,11 +91,8 @@ def render_mult_item(body):
     return None
 
 
-def render_body(body, answer_choices, is_mc, is_mult_item):
+def render_body(body, answer_choices, is_mc):
     print(body)
-    if is_mult_item:
-        body = render_mult_item(body)
-        assert body is not None
     if is_mc:
         choices = f"\\wxyz{{{answer_choices[0]}}}{{{answer_choices[1]}}}{{{answer_choices[2]}}}{{{answer_choices[3]}}}"
         body = " ".join([body, choices])
@@ -108,7 +104,6 @@ class Question:
         self,
         category,
         subcat,
-        is_mult_item,
         body,
         ans,
         accept,
@@ -118,7 +113,6 @@ class Question:
     ):  # By default, assumes short answer
         self.category = category
         self.subcat = subcat
-        self.is_mult_item = is_mult_item
         self.body = body
         self.ans = ans
         self.accept = accept
@@ -147,23 +141,21 @@ class Question:
         elif do_not_accept is not None:
             ans_note = do_not_accept
         if pd.isnull(self.ans):
-            self.ans = "MISSING ANSWER, MUST FIX"  # TODO: fix hacky fix
+            self.ans = "None"
         ans = (
             " ".join((self.ans, f"({ans_note})")) if ans_note is not None else self.ans
         )
         # Body of the question: stuff for if multiple choice or not
-        body = render_body(
-            self.body, self.answer_choices, self.is_mc, self.is_mult_item
-        )
+        body = render_body(self.body, self.answer_choices, self.is_mc)
         return f"\\question{{{num}}}{{{q_type}}}{{{category}}}{{{self.format}}}{{{body}}}{{{ans}}}"
 
 
 class QuestionPair:
     def __init__(self, tossup, bonus):
         assert tossup.category == bonus.category  # No mixed pairs
-        #if tossup.category == Category.Energy:
-            # Energy pairs should not be of the same category
-            #assert tossup.subcat is not None and tossup.subcat != bonus.subcat
+        # if tossup.category == Category.Energy:
+        # Energy pairs should not be of the same category
+        # assert tossup.subcat is not None and tossup.subcat != bonus.subcat
         self.category = tossup.category
         self.tossup = tossup
         self.bonus = bonus
@@ -175,14 +167,14 @@ class QuestionPair:
 
 
 NUM_ROUNDS = 14
-ROUND_LENGTH = 23  # 4 of each main category, 3 Energy (Bio, Chem, Phys). TODO: fix if category targets are different!
+ROUND_LENGTH = 25  # 4 of each main category, 4 Energy. TODO: fix if category targets are different!
 CATEGORY_TARGETS = {
     Category.Math: 4,
     Category.Biology: 4,
     Category.Chemistry: 4,
     Category.Physics: 4,
     Category.EarthSpace: 4,
-    Category.Energy: 3,
+    Category.Energy: 4,
 }
 
 
@@ -194,21 +186,14 @@ def null_to_none(val):
     return val if not pd.isnull(val) else None
 
 
-def booleanify(val):
-    assert val in ("Yes", "No")
-    return val == "Yes"
-
-
 def get_question(row):
     accept = null_to_none(row[ACCEPT])
     do_not_accept = null_to_none(row[DO_NOT_ACCEPT])
     subcat = null_to_none(row[SUBCAT])
-    is_mult_item = booleanify(row[MULT_ITEM])
     if row[FORMAT] == SA:
         return Question(
             category=get_category(row),
             subcat=subcat,
-            is_mult_item=is_mult_item,
             body=row[BODY],
             ans=row[ANSWER],
             accept=accept,
@@ -217,9 +202,8 @@ def get_question(row):
     return Question(
         category=get_category(row),
         subcat=subcat,
-        is_mult_item=is_mult_item,
         body=row[BODY],
-        ans=row[ANSWER],
+        ans=row[ANSWER] + ") " + row[row[ANSWER]],
         accept=accept,
         do_not_accept=do_not_accept,
         is_mc=True,
@@ -261,7 +245,7 @@ def has_repeat_cat(chunks):
 
 
 # This function generates rounds in chunks of 6, 6, 6, and then 5. The first 3 have all 6 categories, and the last one is missing Energy.
-# It should still work for any number of round questions (i.e. not just 23 per round) as it goes through each of the buckets, adds a question 
+# It should still work for any number of round questions (i.e. not just 23 per round) as it goes through each of the buckets, adds a question
 # if present to the chunk, then extends the list of questions by that chunk.
 def gen_round(round_qs):  # Returns a list of QuestionPairs
     tossup_buckets = bucket_round(round_qs.loc[round_qs[TYPE] == TOSSUP])
@@ -287,7 +271,10 @@ def gen_round(round_qs):  # Returns a list of QuestionPairs
 
 # Returns a list of lists of QuestionPairs. Outer list is of length NUM_ROUNDS, and inner lists are of length ROUND_LENGTH.
 def gen_all_rounds(question_df):
-    return [gen_round(question_df.loc[question_df[ROUND_NUM] == round_num]) for round_num in range(1, NUM_ROUNDS+1)]
+    return [
+        gen_round(question_df.loc[question_df[ROUND_NUM] == round_num])
+        for round_num in range(1, NUM_ROUNDS + 1)
+    ]
 
 
 # Takes in a list of QuestionPairs. Returns a string corresponding to the blocks
@@ -296,9 +283,11 @@ def gen_question_tex(question_pairs):
         [pair.render(i + 1) for i, pair in enumerate(question_pairs)]
     )
 
+
 # Takes in a list of rounds, which are lists of QuestionPairs. Pass in the result from gen_all_rounds.
 def gen_round_tex(rounds):
     return [gen_question_tex(r) for r in rounds]
+
 
 # Takes in template, round_number, tex_block, outputs the string of the tex file
 def return_tex(template, round_number, tex_block):
@@ -309,8 +298,9 @@ def return_tex(template, round_number, tex_block):
             .replace("ROUND_NUMBER", str(round_number))
             .replace("YEAR", str(YEAR))
         )
-        res += newline + "\n"
+        res += newline
     return res
+
 
 # Takes in .csv and writes to a given directory with the correct tex files
 def write_tex(csv, directory):
@@ -321,9 +311,10 @@ def write_tex(csv, directory):
         with open(outname, "w+") as outf:
             outf.write(return_tex(template, i + 1, tex_block))
 
+
 if __name__ == "__main__":
     all_questions = pd.read_csv(sys.argv[1])
-    write_tex(all_questions, 'rounds-tex')
+    write_tex(all_questions, "rounds-tex")
 
 # TODO: check category target matches in find_sheet_issues. check that short answer questions do NOT have WXYZ and MC questions have ALL wxyz.
 
