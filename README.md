@@ -12,6 +12,6 @@ find_sheet_issues.py can be run first on the .csv to identify preliminary issues
 
 History:
 
-old_code.py, round_template.tex: written by Mihir Singhal (2022 and before)
+old_code.py, round_template.tex: written by Mihir Singhal (2022 and before), updated by Gideon Tzafriri and Constantine Kyprianou (2025)
 
-find_sheet_issues.py, gen_packets.py: written by Gilford Ting (2023)
+find_sheet_issues.py, gen_packets.py: written by Gilford Ting (2023), updated by Jonathan Huang (2024) and Gideon Tzafriri (2025)
